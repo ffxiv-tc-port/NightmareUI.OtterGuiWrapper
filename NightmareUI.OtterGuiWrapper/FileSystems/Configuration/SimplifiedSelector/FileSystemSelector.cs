@@ -166,7 +166,6 @@ public partial class FileSystemSelector<T, TStateStorage> where T : class where 
             using var group = ImRaii.Group();
             if (DrawList(width))
             {
-                ImGui.PopStyleVar();
                 if (width < 0)
                     width = ImGui.GetWindowWidth() - width;
             }

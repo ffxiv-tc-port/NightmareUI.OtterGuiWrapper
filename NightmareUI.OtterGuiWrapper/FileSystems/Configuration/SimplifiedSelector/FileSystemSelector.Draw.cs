@@ -235,9 +235,10 @@ public partial class FileSystemSelector<T, TStateStorage>
         clipper.Destroy();
 
         //// Handle all queued actions at the end of the iteration.
-        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
+        style.Push(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
         HandleActions();
-        style.Push(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+        // Pop before the child ends: EndChild asserts that nothing pushed inside the child is still on the stack.
+        style.Dispose();
         return true;
     }
 }
