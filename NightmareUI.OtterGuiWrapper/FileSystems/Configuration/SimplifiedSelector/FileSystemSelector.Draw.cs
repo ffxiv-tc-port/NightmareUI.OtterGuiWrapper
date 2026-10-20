@@ -142,19 +142,26 @@ public partial class FileSystemSelector<T, TStateStorage>
         if (SelectedPaths.Contains(folder))
             flags |= ImGuiTreeNodeFlags.Selected;
         flags |= ImGuiTreeNodeFlags.SpanFullWidth;
-        var       expandedState = GetPathState(folder);
-        using var color         = ImRaii.PushColor(ImGuiCol.Text, expandedState ? ExpandedFolderColor : CollapsedFolderColor);
-        if (!OpenedFolders.Contains(folder.Identifier))
+        var expandedState = GetPathState(folder);
+        // 一推一彈、中間擲例外也照樣彈（原本 ImRaii.PushColor 的語意），省掉每個資料夾每幀一個 Color 物件。
+        bool recurse;
+        ImGui.PushStyleColor(ImGuiCol.Text, expandedState ? ExpandedFolderColor : CollapsedFolderColor);
+        try
         {
-            OpenedFolders.Add(folder.Identifier);
-            ImGui.SetNextItemOpen(true);
-				}
-        var recurse = ImUtf8.TreeNode((nint)folder.Identifier, folder.Name.Replace("%", "%%"), flags);
+            if (!OpenedFolders.Contains(folder.Identifier))
+            {
+                OpenedFolders.Add(folder.Identifier);
+                ImGui.SetNextItemOpen(true);
+            }
+            recurse = ImUtf8.TreeNode((nint)folder.Identifier, folder.Name.Replace("%", "%%"), flags);
 
-        if (expandedState != recurse)
-            AddOrRemoveDescendants(folder, recurse);
-
-        color.Pop();
+            if (expandedState != recurse)
+                AddOrRemoveDescendants(folder, recurse);
+        }
+        finally
+        {
+            ImGui.PopStyleColor();
+        }
 
         if (AllowMultipleSelection && ImGui.IsItemClicked(ImGuiMouseButton.Left) && ImGui.GetIO().KeyCtrl)
             Select(folder, default, true, false);

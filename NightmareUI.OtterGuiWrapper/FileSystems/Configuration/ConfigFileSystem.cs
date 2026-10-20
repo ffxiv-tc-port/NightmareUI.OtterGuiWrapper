@@ -22,6 +22,8 @@ public sealed class ConfigFileSystem: FileSystem<ConfigFileSystemEntry>
 {
 		public FileSystemSelector Selector { get; private set; }
 		public ICollection<ConfigFileSystemEntry> DataStorage { get; private set; }
+		// DataStorage 的同一份陣列：Draw 每幀走訪用它，經介面走訪每次都要配一個列舉器。
+		private ConfigFileSystemEntry[] DataArray;
 		private Func<ICollection<ConfigFileSystemEntry>> GetDataAction;
 		public Func<ConfigFileSystemEntry> DefaultValueSelector;
 
@@ -56,7 +58,8 @@ public sealed class ConfigFileSystem: FileSystem<ConfigFileSystemEntry>
 				{
 						SelectedPath = Selector.Selected?.Path;
 				}
-				DataStorage = GetDataAction().Where(x => x.ShouldDisplay()).ToArray();
+				DataArray = GetDataAction().Where(x => x.ShouldDisplay()).ToArray();
+				DataStorage = DataArray;
 				var identifiers = new Dictionary<string, Dictionary<string, string>>()
 				{
 						["Data"] = DataStorage.ToDictionary(x => x.Path, x => x.Path)
@@ -85,9 +88,16 @@ public sealed class ConfigFileSystem: FileSystem<ConfigFileSystemEntry>
 				}
 		}
 
+		// 沒有 Builder 的分頁外框只由（選中的分頁、它的路徑、當下的 FrameBg 顏色）決定，三者都沒變就重用上一幀那份。
+		// FrameBg 也要比：Section 第一次畫時把它記成自己的底色，之後不再讀，換樣式時要重建才會跟上。
+		private ConfigFileSystemEntry FrameEntry;
+		private string FramePath;
+		private Vector4 FrameBg;
+		private NuiBuilder FrameBuilder;
+
 		public void Draw(float? width = null)
 		{
-				foreach(var x in DataStorage)
+				foreach(var x in DataArray)
 				{
 						if(x.Builder != null)
 						{
@@ -125,10 +135,18 @@ public sealed class ConfigFileSystem: FileSystem<ConfigFileSystemEntry>
 										}
 										else
 										{
-												new NuiBuilder()
-														.Section(Selector.Selected.Path.SplitDirectories().Join(" - "))
-														.Widget(Selector.Selected.Draw)
-														.Draw();
+												var path = Selector.Selected.Path;
+												var frameBg = ImGui.GetStyle().Colors[(int)ImGuiCol.FrameBg];
+												if(FrameBuilder == null || !ReferenceEquals(FrameEntry, Selector.Selected) || FramePath != path || FrameBg != frameBg)
+												{
+														FrameBuilder = new NuiBuilder()
+																.Section(path.SplitDirectories().Join(" - "))
+																.Widget(Selector.Selected.Draw);
+														FrameEntry = Selector.Selected;
+														FramePath = path;
+														FrameBg = frameBg;
+												}
+												FrameBuilder.Draw();
 										}
 								} 
 						}
@@ -162,7 +180,8 @@ public sealed class ConfigFileSystem: FileSystem<ConfigFileSystemEntry>
 						flag |= ImGuiTreeNodeFlags.SpanFullWidth;
 						var col = leaf.Value.GetColor();
 						if (col != null) ImGui.PushStyleColor(ImGuiCol.Text, col.Value);
-						using var _ = ImRaii.TreeNode(leaf.Name, flag);
+						// flag 一律含 LeafFlags 的 NoTreePushOnOpen：ImRaii.TreeNode 的結束動作本來就是空的，直接呼叫省掉每列每幀一個結束物件。
+						ImGui.TreeNodeEx(leaf.Name, flag);
 						if (col != null) ImGui.PopStyleColor();
 				}
 
