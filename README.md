@@ -19,7 +19,7 @@
 - [AutoRetainer](https://github.com/ffxiv-tc-port/AutoRetainer)：設定視窗（`ConfigFileSystem`），以子模組引用。
 - [Lifestream](https://github.com/ffxiv-tc-port/Lifestream)：地址簿與自訂別名的清單（`GenericFileSystem`），以子模組引用。
 
-授權：本 repo 沒有 LICENSE 檔。上游在本 fork 的基底版本之後才加上 MIT 授權（見[上游 repo 的 LICENSE](https://github.com/NightmareXIV/NightmareUI.OtterGuiWrapper/blob/main/LICENSE)）。
+授權：MIT（見 LICENSE）。
 
 ---
 
